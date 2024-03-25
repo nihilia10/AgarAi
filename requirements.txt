@@ -1,0 +1,7 @@
+pyautogui
+pywin32
+selenium==4.13.0
+beautifulsoup4==4.10.0
+numpy
+opencv-python
+pyppeteer
