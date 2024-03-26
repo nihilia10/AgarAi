@@ -4,11 +4,13 @@ import time
 from src.gui_utils import GuiUtils
 from src.cell_detection import CircleDetector
 from src.rectangle_detection import RectangleDetector
+from src.directions import Vector
 from bs4 import BeautifulSoup
 import random
+import keyboard
 
 class AgarAi:
-    __slots__ = "gui_driver", "center_x", "center_y", "objects", "alive", "t", "cell_detector", "ss_state", "ready_to_play"
+    __slots__ = "gui_driver", "center_x", "center_y", "objects", "alive", "t", "cell_detector", "ss_state", "ready_to_play", "me"
     def __init__(self):
 
         try:
@@ -19,6 +21,7 @@ class AgarAi:
             self.center_x, self.center_y = self.gui_driver.get_map_center()
             self.objects = []
             self.ready_to_play = True
+            self.me = [self.center_x, self.center_y, 0]
             self.alive = True
             self.t = 0
         except Exception as e:
@@ -57,7 +60,7 @@ class AgarAi:
             random_y = self.center_y + radius * math.sin(angle)
 
             # Move the mouse cursor to the random position within the window
-            self.gui_driver.move_mouse(random_x, random_y)               
+            self.gui_driver.move_mouse(random_x, random_y, duration=0.2)               
             
 
         except Exception as e:
@@ -98,7 +101,9 @@ class AgarAi:
     
     def im_ready_to_play(self):
         self.cell_detector.detect_circles(draw=True)
-        return self.cell_detector.detect_circle_position(self.center_x, self.center_y)
+        res, self.me = self.cell_detector.detect_circle_position(self.center_x, self.center_y)
+        self.objects = self.cell_detector.remove_circle(self.me)
+        return res
     
     def get_stats(self):
         sleep_time = 3
@@ -137,5 +142,32 @@ class AgarAi:
     def next_action(self):
         #policy
         radius = 40 + self.t
-        self.move_random(radius)
-        self.update_state()
+        #self.move_random(radius)
+        self.attack(radius)
+        self.update_state() 
+        if keyboard.is_pressed("q"):
+                self.alive = False
+                print("You killed him.")   
+
+
+    def find_meat(self):
+        return self.cell_detector.find_smallest_circles(self.me)
+
+
+    def attack(self, radius=100):
+        meat = self.find_meat()
+        if len(meat) > 0:
+            target = random.choice(meat)
+            print(f"attacking: {target}. me: {self.me}")   
+            self.move_to_direction(target.x, target.y, radius=radius)
+
+    def move_to_direction(self, x, y, radius=100):
+        direction = Vector(self.center_x, self.center_y, x, y)
+        dx, dy = direction.normalize_vector(radius)
+
+        random_x = self.center_x + dx
+        random_y = self.center_y + dy
+
+        # Move the mouse cursor to the random position within the window
+        self.gui_driver.move_mouse(random_x, random_y, duration=0.2)   
+

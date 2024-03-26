@@ -11,6 +11,7 @@ from src.agar import AgarAi
 from src.rectangle_detection import RectangleDetector
 from src.gui_utils import GuiUtils
 import time
+import keyboard
 
 class TrainAgents:
     __slots__ = "gui_driver"
@@ -36,7 +37,7 @@ class TrainAgents:
 
         #Runntimer
         while agent.alive:
-            agent.next_action()
+            agent.next_action()            
         
         stats = agent.get_stats()
         TrainAgents.dump_stats(stats, 'data/agent_stats.csv')
@@ -52,13 +53,12 @@ class TrainAgents:
         agent = AgarAi()
         agent.ready_to_play = False
         restarting_ss = 'img/restarting.jpg'
-        sleep_time = 2
+        sleep_time = 1
+        possible_pause_video = False
         while not agent.ready_to_play:
             if take_ss:
                 self.gui_driver.capture_map_screenshot(restarting_ss)
             detector = RectangleDetector(restarting_ss)
-
-            already_click = False
 
             rectangles = detector.detect_rectangles()
             widest, _ = detector.get_widest_rectangle(rectangles, max_x=600)
@@ -66,20 +66,30 @@ class TrainAgents:
             target_corners = [[242, 468], [273, 378]]
             if self.clickable_restart(widest, target_corners):
                 sleep_time = 2
-                already_click = True
+                possible_pause_video = False
             rectangles = detector.detect_rectangles(blur=False)
             widest, _ = detector.get_widest_rectangle(rectangles, min_x=1100)
             target_corners = [[1139, 946], [1222, 113]]
+
+            
             if self.clickable_restart(widest, target_corners, clickable_idx=0):
                 sleep_time = 2
-            elif not already_click:
-                self.gui_driver.click()
+                possible_pause_video = True 
                  
 
             time.sleep(1.5)
             agent.update_state()
             if agent.ready_to_play:
                 break
+            
+            if possible_pause_video:
+                self.gui_driver.click()
+            
+            time.sleep(1.5)
+            agent.update_state()
+            if agent.ready_to_play:
+                break
+            
             print(f"Aún no puedo jugar sleping {sleep_time}...")
             time.sleep(sleep_time)
             sleep_time += 1

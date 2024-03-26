@@ -3,6 +3,36 @@ import numpy as np
 import math
 import time
 
+import math
+
+class Circle:
+    def __init__(self, x, y, radius):
+        self.x = x
+        self.y = y
+        self.radius = radius
+    
+    def __repr__(self):
+        return f"Circle at ({self.x}, {self.y}) with radius {self.radius}"
+    
+    def distance_to_circle(self, other_circle):
+        # Calculate the distance between the centers of two circles
+        return math.sqrt((self.x - other_circle.x)**2 + (self.y - other_circle.y)**2)
+
+    def is_smaller_than(self, other_circle):
+        # Check if the circle's radius is smaller than the radius of another circle
+        return self.radius < other_circle.radius
+
+    @staticmethod
+    def find_smallest_circles(circles, reference_circle):
+        # Find circles with smaller radii relative to a reference circle
+        smallest_circles = []
+        for circle in circles:
+            distance = reference_circle.distance_to_circle(circle)
+            if circle.is_smaller_than(reference_circle) and distance > 0:
+                smallest_circles.append(circle)
+        return smallest_circles
+
+
 class CircleDetector:
     def __init__(self, image_path):
         self.image_path = image_path
@@ -32,8 +62,7 @@ class CircleDetector:
         
         # Apply the mask to the grayscale thresholded image
         self.thresholded_yellow = cv2.bitwise_or(self.thresholded, mask_yellow)
-
-    
+   
     def detect_circles(self, draw=False):
         self.preprocess_image()
         # Detect edges in the image
@@ -49,6 +78,8 @@ class CircleDetector:
 
         if self.circles is None:
             self.circles = []
+        else:
+            self.circles = [Circle(float(x[0]), float(x[1]), float(x[2])) for x in self.circles]
         
         if draw:
             self.draw_detected_circles()
@@ -57,9 +88,8 @@ class CircleDetector:
     def draw_detected_circles(self):
         # Check if circles were found
         if self.circles is not None:
-            self.circles = np.uint16(np.around(self.circles))
             for circle in self.circles:
-                x, y, r = circle[0], circle[1], circle[2]
+                x, y, r = np.uint16(circle.x), np.uint16(circle.y), np.uint16(circle.radius)
                 cv2.circle(self.image, (x, y), r, (0, 255, 0), 2)
                 cv2.circle(self.image, (x, y), 2, (0, 0, 255), 3)
     
@@ -181,19 +211,31 @@ class CircleDetector:
             if pixel_density > density_threshold:
                 density.append((x, y, r))
         return np.array(density)
+        
+    def remove_circle(self, circle_to_remove):
+        # Create a new list without the circle to remove
+        return [circle for circle in self.circles if circle != circle_to_remove]
+
+    def find_smallest_circles(self, reference_circle):
+        # Find circles with smaller radii relative to a reference circle
+        smallest_circles = []
+        if reference_circle is not None:
+            for circle in self.circles:
+                distance = reference_circle.distance_to_circle(circle)
+                if circle.is_smaller_than(reference_circle) and distance > 0:
+                    smallest_circles.append(circle)
+        return smallest_circles
     
     def detect_circle_position(self, x, y, tolerance=60):
         
         # Check if any circle in self.circles has its center within tolerance
         for circle in self.circles:
-            # Unpack the circle data (center_x, center_y, radius)
-            circle_center_x, circle_center_y, radius = circle
             # Calculate the distance between the circle's center and the center of the image
-            distance_to_center = np.sqrt((circle_center_x - x)**2 + (circle_center_y - y)**2)
+            distance_to_center = np.sqrt((circle.x - x)**2 + (circle.y - y)**2)
             # Check if the distance is within the tolerance
             if distance_to_center <= tolerance:
-                return True  # Found a circle in the center
-        return False  # No circle found in the center
+                return True, circle  # Found a circle in the center
+        return False, None  # No circle found in the center
     
 #if __name__ == "__main__":
 #    init = time.time()

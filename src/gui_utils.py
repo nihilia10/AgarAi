@@ -28,11 +28,11 @@ class GuiUtils:
         self.window.activate()
     def get_map_center(self):
         width = self.visible_map["right"] - self.visible_map["left"]
-        height = self.visible_map["bottom"] - self.visible_map["top"] - 37
+        height = self.visible_map["bottom"] - self.visible_map["top"] - 85
         return width/2, height/2 
     
-    def move_mouse(self, x, y):
-        pyautogui.moveTo(self.visible_map["left"] + x, self.visible_map["top"] + y)
+    def move_mouse(self, x, y, duration=0):
+        pyautogui.moveTo(self.visible_map["left"] + x, self.visible_map["top"] + y, duration=duration)
 
     def move_and_click(self, x, y, relative_center=False, base_visible_map=False):
         if base_visible_map:

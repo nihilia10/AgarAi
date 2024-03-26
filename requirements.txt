@@ -5,3 +5,4 @@ beautifulsoup4==4.10.0
 numpy
 opencv-python
 pyppeteer
+keyboard
