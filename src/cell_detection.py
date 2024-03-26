@@ -5,11 +5,17 @@ import time
 
 class CircleDetector:
     def __init__(self, image_path):
-        self.image = cv2.imread(image_path)
+        self.image_path = image_path
+        self.update_detector()
+        self.circles = []
+    
+    def update_detector(self):
+        self.image = cv2.imread(self.image_path)
         self.gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
         self.hsv = cv2.cvtColor(self.image, cv2.COLOR_BGR2HSV)
     
     def preprocess_image(self):
+        self.update_detector()
         # Apply a median filter to reduce noise
         self.smoothed_gray = cv2.medianBlur(self.gray, 23)
         self.smoothed_hsv = cv2.medianBlur(self.hsv, 23)
@@ -26,20 +32,27 @@ class CircleDetector:
         
         # Apply the mask to the grayscale thresholded image
         self.thresholded_yellow = cv2.bitwise_or(self.thresholded, mask_yellow)
+
     
-    def detect_circles(self):
+    def detect_circles(self, draw=False):
         self.preprocess_image()
         # Detect edges in the image
         edges = cv2.Canny(self.thresholded_yellow, 100, 200)
         
         # Apply Hough Transform for circles
         self.circles = cv2.HoughCircles(edges, cv2.HOUGH_GRADIENT, dp=1, minDist=10,
-                                         param1=100, param2=20, minRadius=0, maxRadius=0)
+                                         param1=100, param2=30, minRadius=0, maxRadius=0)
         
         if self.circles is not None and len(self.circles):
             self.circles = CircleDetector.remove_by_desnity(self.circles, base_image=self.thresholded_yellow, density_threshold=200)
             self.circles = CircleDetector.remove_overlapping_circles(self.circles)
-        return self.circles
+
+        if self.circles is None:
+            self.circles = []
+        
+        if draw:
+            self.draw_detected_circles()
+            self.save_image("img/circles.jpg")
     
     def draw_detected_circles(self):
         # Check if circles were found
@@ -169,12 +182,24 @@ class CircleDetector:
                 density.append((x, y, r))
         return np.array(density)
     
+    def detect_circle_position(self, x, y, tolerance=60):
+        
+        # Check if any circle in self.circles has its center within tolerance
+        for circle in self.circles:
+            # Unpack the circle data (center_x, center_y, radius)
+            circle_center_x, circle_center_y, radius = circle
+            # Calculate the distance between the circle's center and the center of the image
+            distance_to_center = np.sqrt((circle_center_x - x)**2 + (circle_center_y - y)**2)
+            # Check if the distance is within the tolerance
+            if distance_to_center <= tolerance:
+                return True  # Found a circle in the center
+        return False  # No circle found in the center
     
-if __name__ == "__main__":
-    init = time.time()
-    detector = CircleDetector('current_screenshot.jpg')
-    detector.detect_circles()
-    detector.draw_detected_circles()
-    #detector.display_image()
-    detector.save_image("test-save-2.jpg")
-    print(time.time() - init)
+#if __name__ == "__main__":
+#    init = time.time()
+#    detector = CircleDetector('current_screenshot.jpg')
+#    detector.detect_circles()
+#    detector.draw_detected_circles()
+#    #detector.display_image()
+#    detector.save_image("test-save-2.jpg")
+#    print(time.time() - init)

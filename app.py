@@ -1,14 +1,4 @@
-from agar import AgarAi
-from gui_utils import *
-# Example usage
+from train.train import TrainAgents
 
-#Run experiment
-for i in range(100):
-    agent = AgarAi()
-    agent.move_random(2)
-    agent.revive()
-
-
-#agent.update_state()
-#agent.im_alive()
-
+train = TrainAgents()
+train.run_experiments(n_experiments=2)

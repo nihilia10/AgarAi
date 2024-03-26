@@ -3,3 +3,5 @@
 **/env/**
 **/*pycache*/**
 **/*.csv
+
+**.vscode/**
